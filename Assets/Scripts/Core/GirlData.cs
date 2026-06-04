@@ -10,10 +10,10 @@ public class GirlData
     public string name         = "Аноним";
     public int    age          = 21;
     public string description  = "";
-    public string profilePhoto = "";   // путь к файлу
+    public string profilePhoto = "";
     public string introVideo   = "";
     public string introAudio   = "";
-    public int    clothingCount = 7;   // кол-во предметов одежды
+    public int    clothingCount = 0;
 
     // слотов будет clothingCount + 1 (0 = одета, 1..N = стадии раздевания)
     public List<ClothingSlot> slots = new List<ClothingSlot>();
@@ -24,7 +24,7 @@ public class GirlData
     /// </summary>
     public void RebuildSlots()
     {
-        int needed = clothingCount + 1;
+        int needed = clothingCount;
 
         // добавляем недостающие
         while (slots.Count < needed)

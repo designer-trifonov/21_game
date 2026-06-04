@@ -12,11 +12,9 @@ public class AdminController : MonoBehaviour
 {
     // ── Левая панель ─────────────────────────────────────────
     [Header("Левая панель — список")]
-    public Transform     girlListContent;   // Content внутри ScrollView
-    public GameObject    girlCardPrefab;    // префаб GirlCardUI
+    public Transform     girlListContent;
     public Button        btnAddGirl;
     public Button        btnDeckConfig;     // → настройки колоды
-    public Button        btnBack;
 
     // ── Правая панель — редактор ──────────────────────────────
     [Header("Правая панель — редактор")]
@@ -30,32 +28,30 @@ public class AdminController : MonoBehaviour
     public Button         btnIntroVideo;
     public Button         btnIntroAudio;
 
-    public TMP_InputField inputClothingCount;
-    public Button         btnRefreshSlots;
-    public Transform      slotsContent;     // Content для слотов
-    public GameObject     slotRowPrefab;    // префаб SlotRowUI
+    public TMP_InputField inputClothingCount; // слоты обновляются автоматически при изменении
+    public Transform      slotsContent;      // Content для слотов
+    public GameObject     slotRowPrefab;     // префаб SlotRowUI
 
     public Button         btnSave;
     public Button         btnDelete;
 
     // ── Приватное состояние ───────────────────────────────────
-    List<GirlData>   _girls      = new();
-    GirlData         _current    = null;
-    List<GirlCardUI> _cards      = new();
+    List<GirlData>   _girls   = new();
+    GirlData         _current = null;
 
     // ─────────────────────────────────────────────────────────
 
     void OnEnable()
     {
         btnAddGirl    .onClick.AddListener(OnAddGirl);
-        btnDeckConfig .onClick.AddListener(() => UIManager.Instance.ShowAdminDeck());
-        btnBack       .onClick.AddListener(OnBack);
-        btnRefreshSlots.onClick.AddListener(OnRefreshSlots);
+        btnDeckConfig.onClick.AddListener(() => UIManager.Instance.ShowAdminDeck());
         btnSave       .onClick.AddListener(OnSave);
         btnDelete     .onClick.AddListener(OnDelete);
-        btnProfilePhoto.onClick.AddListener(() => Debug.Log("TODO: выбрать фото профиля"));
-        btnIntroVideo  .onClick.AddListener(() => Debug.Log("TODO: выбрать вступительное видео"));
-        btnIntroAudio  .onClick.AddListener(() => Debug.Log("TODO: выбрать вступительное аудио"));
+        btnProfilePhoto.onClick.AddListener(PickProfilePhoto);
+        btnIntroVideo  .onClick.AddListener(PickIntroVideo);
+        btnIntroAudio  .onClick.AddListener(PickIntroAudio);
+
+        inputClothingCount.onEndEdit.AddListener(OnClothingCountChanged);
 
         RefreshList();
         editorPanel.SetActive(false);
@@ -64,33 +60,34 @@ public class AdminController : MonoBehaviour
     void OnDisable()
     {
         btnAddGirl    .onClick.RemoveAllListeners();
-        btnDeckConfig .onClick.RemoveAllListeners();
-        btnBack       .onClick.RemoveAllListeners();
-        btnRefreshSlots.onClick.RemoveAllListeners();
+        btnDeckConfig.onClick.RemoveAllListeners();
         btnSave       .onClick.RemoveAllListeners();
         btnDelete     .onClick.RemoveAllListeners();
         btnProfilePhoto.onClick.RemoveAllListeners();
         btnIntroVideo  .onClick.RemoveAllListeners();
         btnIntroAudio  .onClick.RemoveAllListeners();
+        inputClothingCount.onEndEdit.RemoveAllListeners();
     }
 
     // ── Список девушек ────────────────────────────────────────
 
     void RefreshList()
     {
-        // очищаем старые карточки
         foreach (Transform child in girlListContent)
             Destroy(child.gameObject);
-        _cards.Clear();
 
         _girls = DataRepository.LoadAllGirls();
 
         foreach (var girl in _girls)
         {
-            var go   = Instantiate(girlCardPrefab, girlListContent);
-            var card = go.GetComponent<GirlCardUI>();
-            card.Setup(girl, OnGirlSelected);
-            _cards.Add(card);
+            var captured = girl;
+            CardFactory.Create(
+                parent:    girlListContent,
+                imagePath: captured.profilePhoto,
+                label:     captured.name,
+                size:      new Vector2(300, 180),
+                onClick:   () => OnGirlSelected(captured)
+            );
         }
     }
 
@@ -100,10 +97,6 @@ public class AdminController : MonoBehaviour
     {
         _current = data;
         PopulateEditor(data);
-
-        // подсвечиваем выбранную карточку
-        foreach (var card in _cards)
-            card.SetSelected(card.GetComponent<GirlCardUI>() != null);
     }
 
     // ── Добавить новую ────────────────────────────────────────
@@ -141,17 +134,21 @@ public class AdminController : MonoBehaviour
             var row = go.GetComponent<SlotRowUI>();
             row.Setup(slot);
         }
+
+        inputClothingCount.text = data.clothingCount.ToString();
     }
 
-    // ── Обновить кол-во слотов ────────────────────────────────
 
-    void OnRefreshSlots()
+    // ── Авто-обновление слотов при изменении числа ───────────
+
+    void OnClothingCountChanged(string value)
     {
         if (_current == null) return;
 
-        if (int.TryParse(inputClothingCount.text, out int count))
+        if (int.TryParse(value, out int count))
         {
             _current.clothingCount = Mathf.Clamp(count, 1, 20);
+            inputClothingCount.text = _current.clothingCount.ToString(); // корректируем если вышли за пределы
             _current.RebuildSlots();
             BuildSlotRows(_current);
         }
@@ -163,18 +160,38 @@ public class AdminController : MonoBehaviour
     {
         if (_current == null) return;
 
+        // Основные поля
         _current.name        = inputName.text;
         _current.description = inputDescription.text;
 
         if (int.TryParse(inputAge.text, out int age))
             _current.age = age;
 
-        // слоты уже обновлены через SlotRowUI напрямую
+        // Кол-во одежды — на случай если не сработал onEndEdit
+        if (int.TryParse(inputClothingCount.text, out int count))
+        {
+            int clamped = Mathf.Clamp(count, 1, 20);
+            if (_current.clothingCount != clamped)
+            {
+                _current.clothingCount = clamped;
+                _current.RebuildSlots(); // пересоздаём если число изменилось
+            }
+        }
+
+        // Собираем актуальные данные слотов прямо из UI строк
+        // (на случай если пользователь не нажал Enter после ввода названия)
+        var rows = slotsContent.GetComponentsInChildren<SlotRowUI>();
+        foreach (var row in rows)
+        {
+            var slot = row.GetSlot();
+            if (slot != null && slot.index < _current.slots.Count)
+                _current.slots[slot.index] = slot;
+        }
 
         DataRepository.SaveGirl(_current);
         RefreshList();
 
-        Debug.Log($"Сохранено: {_current.name}");
+        Debug.Log($"Сохранено: {_current.name} | слотов: {_current.slots.Count}");
     }
 
     // ── Удалить ───────────────────────────────────────────────
@@ -189,7 +206,22 @@ public class AdminController : MonoBehaviour
         RefreshList();
     }
 
-    // ── Назад ─────────────────────────────────────────────────
+    // ── Пикеры медиа — строго из Data/ ───────────────────────
 
-    void OnBack() => UIManager.Instance.ShowWelcome();
+    void PickProfilePhoto()
+    {
+        FilePicker.PickImage(path =>
+        {
+            if (_current == null) return;
+            _current.profilePhoto = path;
+            ImageLoader.Load(path, sprite =>
+            {
+                if (profilePreview == null) return;
+                profilePreview.sprite  = sprite;
+                profilePreview.enabled = sprite != null;
+            });
+        });
+    }
+    void PickIntroVideo()   => FilePicker.PickVideo(path => { if (_current != null) _current.introVideo   = path; });
+    void PickIntroAudio()   => FilePicker.PickAudio(path => { if (_current != null) _current.introAudio   = path; });
 }

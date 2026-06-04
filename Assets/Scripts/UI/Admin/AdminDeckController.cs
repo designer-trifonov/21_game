@@ -1,111 +1,102 @@
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 
 /// <summary>
-/// Панель настройки колоды в админке.
-/// Авто-заполнение + ручной выбор рубашки и спрайтов.
+/// Панель настройки колоды.
+/// Рубашка и карты создаются через CardFactory.
 /// </summary>
 public class AdminDeckController : MonoBehaviour
 {
     [Header("Рубашка")]
-    public Image      backPreview;
-    public TMP_Text   backNameText;
-    public Button     btnPickBack;
+    public Transform backContainer;  // контейнер для одного слота рубашки
 
-    [Header("Авто-заполнение")]
-    public TMP_InputField inputFolder;   // папка в Resources (по умолч. "Cards")
-    public Button         btnAutoFill;   // заполнить по именам файлов
-
-    [Header("Список карт")]
-    public Transform  cardsContent;      // Content ScrollView
-    public GameObject cardRowPrefab;     // префаб CardEntryRowUI
+    [Header("Лента карт")]
+    public Transform cardsContent;
 
     [Header("Кнопки")]
     public Button btnSave;
-    public Button btnBack;
 
     DeckConfig _config;
-
-    // ─────────────────────────────────────────────────────────
 
     void OnEnable()
     {
         _config = DeckRepository.Load();
 
-        inputFolder.text = _config.spritesFolder;
+        btnSave.onClick.AddListener(OnSave);
 
-        btnAutoFill.onClick.AddListener(OnAutoFill);
-        btnPickBack.onClick.AddListener(OnPickBack);
-        btnSave    .onClick.AddListener(OnSave);
-        btnBack    .onClick.AddListener(OnBack);
-
-        RefreshBackPreview();
-        BuildCardRows();
+        BuildBackSlot();
+        BuildCardStrip();
     }
 
     void OnDisable()
     {
-        btnAutoFill.onClick.RemoveAllListeners();
-        btnPickBack.onClick.RemoveAllListeners();
-        btnSave    .onClick.RemoveAllListeners();
-        btnBack    .onClick.RemoveAllListeners();
-    }
-
-    // ── Авто-заполнить список карт ────────────────────────────
-
-    void OnAutoFill()
-    {
-        _config.spritesFolder = inputFolder.text.Trim();
-        DeckRepository.AutoFill(_config, DeckRepository.Suits36, DeckRepository.Ranks36);
-        BuildCardRows();
-        Debug.Log("Авто-заполнено 36 карт");
-    }
-
-    // ── Строим сетку карт ─────────────────────────────────────
-
-    void BuildCardRows()
-    {
-        foreach (Transform child in cardsContent)
-            Destroy(child.gameObject);
-
-        foreach (var entry in _config.cards)
-        {
-            var go  = Instantiate(cardRowPrefab, cardsContent);
-            var row = go.GetComponent<CardEntryRowUI>();
-            row.Setup(entry, _config);
-        }
+        btnSave.onClick.RemoveAllListeners();
     }
 
     // ── Рубашка ───────────────────────────────────────────────
 
-    void OnPickBack()
+    void BuildBackSlot()
     {
-        // TODO: NativeFilePicker
-        Debug.Log("TODO: выбрать рубашку");
+        foreach (Transform child in backContainer)
+            Destroy(child.gameObject);
+
+        var imagePath = DataPaths.FindImage(_config.cardBackSprite);
+        CardFactory.Create(
+            parent:    backContainer,
+            imagePath: imagePath,
+            label:     "Рубашка",
+            size:      new Vector2(100, 140),
+            onClick:   OnBackClicked
+        );
     }
 
-    void RefreshBackPreview()
+    void OnBackClicked()
     {
-        backNameText.text = string.IsNullOrEmpty(_config.cardBackSprite)
-            ? "не выбрана"
-            : _config.cardBackSprite;
+        FilePicker.PickImage(path =>
+        {
+            _config.cardBackSprite = System.IO.Path.GetFileNameWithoutExtension(path);
+            BuildBackSlot();
+        });
+    }
 
-        var sprite = DeckRepository.LoadCardBack(_config);
-        backPreview.sprite  = sprite;
-        backPreview.enabled = sprite != null;
+    // ── Лента карт ────────────────────────────────────────────
+
+    void BuildCardStrip()
+    {
+        foreach (Transform child in cardsContent)
+            Destroy(child.gameObject);
+
+        if (_config.cards.Count == 0)
+            DeckRepository.AutoFill(_config, DeckRepository.Suits36, DeckRepository.Ranks36);
+
+        foreach (var entry in _config.cards)
+        {
+            var captured  = entry;
+            var imagePath = DataPaths.FindImage(entry.spriteName);
+            CardFactory.Create(
+                parent:    cardsContent,
+                imagePath: imagePath,
+                label:     captured.DisplayNameRu,
+                size:      new Vector2(100, 140),
+                onClick:   () => OnCardClicked(captured)
+            );
+        }
+    }
+
+    void OnCardClicked(CardEntry entry)
+    {
+        FilePicker.PickImage(path =>
+        {
+            entry.spriteName = System.IO.Path.GetFileNameWithoutExtension(path);
+            BuildCardStrip();
+        });
     }
 
     // ── Сохранить ─────────────────────────────────────────────
 
     void OnSave()
     {
-        _config.spritesFolder = inputFolder.text.Trim();
         DeckRepository.Save(_config);
         Debug.Log("Конфиг колоды сохранён");
     }
-
-    // ── Назад ─────────────────────────────────────────────────
-
-    void OnBack() => UIManager.Instance.ShowAdmin();
 }

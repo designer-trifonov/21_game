@@ -30,13 +30,40 @@ public class CardEntry
     public string spriteName;  // имя файла без расширения, например card_A_clubs
     public int    value;       // игровое значение для 21
 
-    // Русское название масти для UI
+    // Символ масти
     public string SuitRu => suit switch
     {
         "clubs"    => "♣",
         "diamonds" => "♦",
         "hearts"   => "♥",
         "spades"   => "♠",
+        _          => suit
+    };
+
+    // Полное русское название: "Туз Треф", "Шесть Червей" и т.д.
+    public string DisplayNameRu =>
+        $"{RankRu}\n{SuitFullRu}";
+
+    public string RankRu => rank switch
+    {
+        "A"  => "Туз",
+        "6"  => "Шесть",
+        "7"  => "Семь",
+        "8"  => "Восемь",
+        "9"  => "Девять",
+        "10" => "Десять",
+        "J"  => "Валет",
+        "Q"  => "Дама",
+        "K"  => "Король",
+        _    => rank
+    };
+
+    public string SuitFullRu => suit switch
+    {
+        "clubs"    => "Трефы",
+        "diamonds" => "Бубны",
+        "hearts"   => "Червы",
+        "spades"   => "Пики",
         _          => suit
     };
 

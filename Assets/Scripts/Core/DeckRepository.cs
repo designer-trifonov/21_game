@@ -8,7 +8,7 @@ using UnityEngine;
 /// </summary>
 public static class DeckRepository
 {
-    static string FilePath => Path.Combine(Application.persistentDataPath, "deck_config.json");
+    static string FilePath => DataPaths.DeckConfig;
 
     // Масти и ранги для 36-карточной колоды
     public static readonly string[] Suits36 = { "clubs", "diamonds", "hearts", "spades" };

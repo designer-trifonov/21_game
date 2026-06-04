@@ -8,7 +8,7 @@ using UnityEngine;
 /// </summary>
 public static class DataRepository
 {
-    static string GirlsFolder => Path.Combine(Application.persistentDataPath, "girls");
+    static string GirlsFolder => DataPaths.Girls;
 
     // ── Девушки ──────────────────────────────────────────────
 

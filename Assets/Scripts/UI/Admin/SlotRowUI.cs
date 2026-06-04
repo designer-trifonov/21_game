@@ -4,17 +4,16 @@ using TMPro;
 
 /// <summary>
 /// Одна строка слота одежды в редакторе девушки.
-/// Создаётся динамически.
 /// </summary>
 public class SlotRowUI : MonoBehaviour
 {
     [Header("UI")]
-    public TMP_Text    slotIndexText;   // "Слот 0", "Слот 1" ...
-    public TMP_InputField labelInput;   // название слота
-    public Image       photoPreview;
-    public Button      btnPhoto;
-    public Button      btnVideo;
-    public Button      btnAudio;
+    public TMP_Text       slotIndexText;
+    public TMP_InputField labelInput;
+    public Image          photoPreview;
+    public Button         btnPhoto;
+    public Button         btnVideo;
+    public Button         btnAudio;
 
     ClothingSlot _slot;
 
@@ -22,19 +21,20 @@ public class SlotRowUI : MonoBehaviour
     {
         _slot = slot;
 
-        slotIndexText.text = slot.index == 0 ? "Слот 0 — Одета" : $"Слот {slot.index}";
-        labelInput.text    = slot.label;
+        if (slotIndexText != null) slotIndexText.text = slot.index == 0 ? "0 — Одета" : $"{slot.index}";
+        if (labelInput    != null) labelInput.text    = slot.label;
 
+        labelInput.onEndEdit.RemoveAllListeners();
         labelInput.onEndEdit.AddListener(val => _slot.label = val);
 
-        btnPhoto.onClick.RemoveAllListeners();
-        btnVideo.onClick.RemoveAllListeners();
-        btnAudio.onClick.RemoveAllListeners();
-
-        btnPhoto.onClick.AddListener(() => Debug.Log($"TODO: выбрать фото слота {slot.index}"));
-        btnVideo.onClick.AddListener(() => Debug.Log($"TODO: выбрать видео слота {slot.index}"));
-        btnAudio.onClick.AddListener(() => Debug.Log($"TODO: выбрать аудио слота {slot.index}"));
+        if (btnPhoto != null) { btnPhoto.onClick.RemoveAllListeners(); btnPhoto.onClick.AddListener(PickPhoto); }
+        if (btnVideo != null) { btnVideo.onClick.RemoveAllListeners(); btnVideo.onClick.AddListener(PickVideo); }
+        if (btnAudio != null) { btnAudio.onClick.RemoveAllListeners(); btnAudio.onClick.AddListener(PickAudio); }
     }
 
     public ClothingSlot GetSlot() => _slot;
+
+    void PickPhoto() => FilePicker.PickImage(path  => _slot.photoPath = path);
+    void PickVideo() => FilePicker.PickVideo(path  => _slot.videoPath = path);
+    void PickAudio() => FilePicker.PickAudio(path  => _slot.audioPath = path);
 }
