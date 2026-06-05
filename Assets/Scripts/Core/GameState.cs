@@ -4,15 +4,16 @@
 /// </summary>
 public static class GameState
 {
-    public static GirlData  CurrentGirl   { get; private set; }
-    public static int       Round         { get; set; } = 1;
-    public static int       MaxRounds     { get; set; } = 14;
-    public static int       PlayerWins    { get; set; } = 0;  // кол-во побед игрока
-    public static int       ClothingLevel { get; set; } = 0;  // текущий слот одежды
+    public static GirlData    CurrentGirl       { get; private set; }
+    public static int         Round             { get; set; } = 1;
+    public static int         MaxRounds         { get; set; } = 14;
+    public static int         PlayerWins        { get; set; } = 0;
+    public static int         ClothingLevel     { get; set; } = 0;
+    public static Difficulty  CurrentDifficulty { get; private set; } = Difficulty.Normal;
+    public static RoundResult LastRoundResult   { get; private set; } = RoundResult.Draw;
 
-    /// <summary>
-    /// Начать новую игру с выбранной девушкой.
-    /// </summary>
+    public static void SetDifficulty(Difficulty d) => CurrentDifficulty = d;
+
     public static void StartGame(GirlData girl)
     {
         CurrentGirl   = girl;
@@ -21,24 +22,20 @@ public static class GameState
         ClothingLevel = 0;
     }
 
-    /// <summary>
-    /// Игрок выиграл раунд — снимаем одежду.
-    /// </summary>
     public static void OnPlayerWin()
     {
+        LastRoundResult = RoundResult.PlayerWin;
         PlayerWins++;
         ClothingLevel = PlayerWins;
         Round++;
     }
 
-    /// <summary>
-    /// Ничья или поражение — одежда не меняется.
-    /// </summary>
-    public static void OnRoundEnd()
+    public static void OnRoundEnd(RoundResult result)
     {
+        LastRoundResult = result;
         Round++;
     }
 
-    public static bool IsGameOver   => Round > MaxRounds;
-    public static bool IsPlayerWon  => CurrentGirl != null && ClothingLevel >= CurrentGirl.clothingCount;
+    public static bool IsGameOver  => Round > MaxRounds;
+    public static bool IsPlayerWon => CurrentGirl != null && ClothingLevel >= CurrentGirl.clothingCount;
 }

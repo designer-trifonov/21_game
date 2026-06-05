@@ -38,6 +38,6 @@ public class GirlSelectScreen : MonoBehaviour
     void OnGirlSelected(GirlData girl)
     {
         GameState.StartGame(girl);
-        UIManager.Instance.ShowIntro();
+        UIManager.Instance.ShowDifficulty();
     }
 }

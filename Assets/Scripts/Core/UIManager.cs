@@ -14,6 +14,7 @@ public class UIManager : MonoBehaviour
     public GameObject panelWelcome;
     public GameObject panelRules;
     public GameObject panelGirlSelect;
+    public GameObject panelDifficulty;
     public GameObject panelIntro;
     public GameObject panelGame;
     public GameObject panelRoundResult;
@@ -46,6 +47,7 @@ public class UIManager : MonoBehaviour
     public void ShowWelcome()     => Show(panelWelcome,     clearHistory: true);
     public void ShowRules()       => Show(panelRules);
     public void ShowGirlSelect()  => Show(panelGirlSelect);
+    public void ShowDifficulty()  => Show(panelDifficulty);
     public void ShowIntro()       => Show(panelIntro);
     public void ShowGame()        => Show(panelGame);
     public void ShowRoundResult() => Show(panelRoundResult);
