@@ -26,6 +26,9 @@ public class UIManager : MonoBehaviour
     [Header("Общая кнопка Back")]
     public Button btnBack;
 
+    [Header("Кнопка Главное меню (только во время игры)")]
+    public Button btnMainMenu;
+
     readonly Stack<GameObject> _history = new();
     GameObject _current;
 
@@ -38,8 +41,13 @@ public class UIManager : MonoBehaviour
 
         DataPaths.EnsureCreated();
 
-        if (btnBack != null) btnBack.onClick.AddListener(GoBack);
+        if (btnBack     != null) btnBack    .onClick.AddListener(GoBack);
         else Debug.LogWarning("[UIManager] btnBack не назначен!");
+
+        if (btnMainMenu != null) btnMainMenu.onClick.AddListener(ShowWelcome);
+        else Debug.LogWarning("[UIManager] btnMainMenu не назначен!");
+
+        if (btnMainMenu != null) btnMainMenu.gameObject.SetActive(false);
 
         // Гасим все панели явно — ни одна не должна быть активна при старте
         DeactivateAll();
@@ -73,7 +81,12 @@ public class UIManager : MonoBehaviour
     public void ShowGirlSelect()  => Navigate(() => { Show(girlSelect?.rootPanel);   girlSelect ?.Show(); });
     public void ShowIntro()       => Navigate(() => { Show(intro?.rootPanel);        intro      ?.Show(); });
     public void ShowDifficulty()  => Navigate(() => { Show(difficulty?.rootPanel);   difficulty ?.Show(); });
-    public void ShowGame()        => Navigate(() => { Show(panelGame); gameController?.StartGame(); });
+    public void ShowGame()
+    {
+        Navigate(() => { Show(panelGame); gameController?.StartGame(); });
+        if (btnBack     != null) btnBack    .gameObject.SetActive(false);
+        if (btnMainMenu != null) btnMainMenu.gameObject.SetActive(true);
+    }
     public void ShowRoundResult() => Navigate(() => { Show(roundResult?.rootPanel);  roundResult?.Show(); });
     public void ShowGameEnd()     => Navigate(() => { Show(gameEnd?.rootPanel);      gameEnd    ?.Show(); });
 
@@ -112,7 +125,8 @@ public class UIManager : MonoBehaviour
 
         action.Invoke();
 
-        if (btnBack != null) btnBack.gameObject.SetActive(!clearHistory);
+        if (btnBack     != null) btnBack    .gameObject.SetActive(!clearHistory);
+        if (btnMainMenu != null) btnMainMenu.gameObject.SetActive(false);
     }
 
     void Show(GameObject target)
