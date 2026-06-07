@@ -5,10 +5,10 @@ using UnityEngine;
 /// Все пути к медиа-файлам — строго из папки Data.
 /// Структура:
 ///   Data/
-///     Image/
+///     Images/
 ///     Video/
 ///     Audio/
-///     Girls/       ← JSON девушек
+///     Girls/
 ///     deck_config.json
 /// </summary>
 public static class DataPaths
@@ -17,18 +17,16 @@ public static class DataPaths
     public static string Root  => Path.Combine(Application.persistentDataPath, "Data");
 
     // ── Медиа ─────────────────────────────────────────────────
-    public static string Image => Path.Combine(Root, "Image");
+    public static string Image => Path.Combine(Application.dataPath, "Data", "Images");
     public static string Video => Path.Combine(Root, "Video");
     public static string Audio => Path.Combine(Root, "Audio");
 
     // ── Данные ────────────────────────────────────────────────
-    public static string Girls      => Path.Combine(Root, "Girls");
-    public static string DeckConfig => Path.Combine(Root, "deck_config.json");
+    public static string Girls => Path.Combine(Root, "Girls");
 
     // ─────────────────────────────────────────────────────────
     /// <summary>
     /// Создаёт все папки при первом запуске если их нет.
-    /// Вызывай один раз при старте приложения.
     /// </summary>
     public static void EnsureCreated()
     {
@@ -39,6 +37,9 @@ public static class DataPaths
         Directory.CreateDirectory(Girls);
 
         Debug.Log($"[DataPaths] Root: {Root}");
+        Debug.Log($"[DataPaths] Image: {Image}");
+        Debug.Log($"[DataPaths] Video: {Video}");
+        Debug.Log($"[DataPaths] Audio: {Audio}");
     }
 
     // ── Хелперы поиска файла ──────────────────────────────────
@@ -49,7 +50,12 @@ public static class DataPaths
     /// </summary>
     public static string FindImage(string nameWithoutExt)
     {
-        return FindFile(Image, nameWithoutExt, ".png", ".jpg", ".jpeg");
+        var result = FindFile(Image, nameWithoutExt, ".png", ".jpg", ".jpeg");
+        if (result == null)
+            Debug.LogError($"[DataPaths] FindImage: файл '{nameWithoutExt}' не найден в {Image}");
+        else
+            Debug.Log($"[DataPaths] FindImage: {result}");
+        return result;
     }
 
     /// <summary>
@@ -57,7 +63,12 @@ public static class DataPaths
     /// </summary>
     public static string FindVideo(string nameWithoutExt)
     {
-        return FindFile(Video, nameWithoutExt, ".mp4", ".avi", ".mov", ".webm");
+        var result = FindFile(Video, nameWithoutExt, ".mp4", ".avi", ".mov", ".webm");
+        if (result == null)
+            Debug.LogWarning($"[DataPaths] FindVideo: файл '{nameWithoutExt}' не найден в {Video}");
+        else
+            Debug.Log($"[DataPaths] FindVideo: {result}");
+        return result;
     }
 
     /// <summary>
@@ -65,15 +76,30 @@ public static class DataPaths
     /// </summary>
     public static string FindAudio(string nameWithoutExt)
     {
-        return FindFile(Audio, nameWithoutExt, ".mp3", ".wav", ".ogg");
+        var result = FindFile(Audio, nameWithoutExt, ".mp3", ".wav", ".ogg");
+        if (result == null)
+            Debug.LogWarning($"[DataPaths] FindAudio: файл '{nameWithoutExt}' не найден в {Audio}");
+        else
+            Debug.Log($"[DataPaths] FindAudio: {result}");
+        return result;
     }
 
     static string FindFile(string folder, string name, params string[] extensions)
     {
+        // Точное совпадение
         foreach (var ext in extensions)
         {
             string path = Path.Combine(folder, name + ext);
             if (File.Exists(path)) return path;
+        }
+        // Поиск по префиксу: card_1-1 найдёт card_1-1_144x208.png
+        if (Directory.Exists(folder))
+        {
+            foreach (var ext in extensions)
+            {
+                var files = Directory.GetFiles(folder, name + "*" + ext);
+                if (files.Length > 0) return files[0];
+            }
         }
         return null;
     }

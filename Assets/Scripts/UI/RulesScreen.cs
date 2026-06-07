@@ -1,9 +1,16 @@
 using UnityEngine;
-using UnityEngine.UI;
 
 public class RulesScreen : MonoBehaviour
 {
-    void Start()
+    public GameObject rootPanel;
+
+    public void Init()
     {
+        Debug.Log("[RulesScreen] Init");
+    }
+
+    public void Show()
+    {
+        Debug.Log("[RulesScreen] Show");
     }
 }

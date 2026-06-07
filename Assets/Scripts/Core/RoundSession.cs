@@ -80,6 +80,11 @@ public class RoundSession
         if (_drawIndex >= _deck.Count)
         {
             Debug.LogWarning("[RoundSession] Колода закончилась — перетасовываем.");
+            for (int i = _deck.Count - 1; i > 0; i--)
+            {
+                int j = Random.Range(0, i + 1);
+                (_deck[i], _deck[j]) = (_deck[j], _deck[i]);
+            }
             _drawIndex = 0;
         }
         return _deck[_drawIndex++];

@@ -2,24 +2,32 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-/// <summary>
-/// Экран результата раунда.
-/// </summary>
 public class RoundResultScreen : MonoBehaviour
 {
-    [Header("UI")]
+    public GameObject      rootPanel;
     public TextMeshProUGUI txtResult;
     public TextMeshProUGUI txtRound;
     public TextMeshProUGUI txtWins;
     public Button          btnContinue;
 
-    void OnEnable()
+    public void Init()
     {
-        btnContinue.onClick.AddListener(OnContinue);
+        Debug.Log("[RoundResultScreen] Init");
+        if (btnContinue == null) { Debug.LogError("[RoundResultScreen] btnContinue не назначен!"); return; }
+        btnContinue.onClick.AddListener(() => { Debug.Log("[RoundResultScreen] Продолжить"); UIManager.Instance.ShowGame(); });
+    }
 
-        txtRound.text = $"Раунд {GameState.Round - 1} из {GameState.MaxRounds}";
-        txtWins .text = $"Побед: {GameState.PlayerWins}";
-        txtResult.text = GameState.LastRoundResult switch
+    public void Show()
+    {
+        Debug.Log($"[RoundResultScreen] Show — результат: {GameState.LastRoundResult} раунд: {GameState.Round - 1} победы: {GameState.PlayerWins}");
+
+        if (txtRound  == null) Debug.LogError("[RoundResultScreen] txtRound не назначен!");
+        if (txtWins   == null) Debug.LogError("[RoundResultScreen] txtWins не назначен!");
+        if (txtResult == null) Debug.LogError("[RoundResultScreen] txtResult не назначен!");
+
+        if (txtRound  != null) txtRound.text  = $"Раунд {GameState.Round - 1} из {GameState.MaxRounds}";
+        if (txtWins   != null) txtWins.text   = $"Побед: {GameState.PlayerWins}";
+        if (txtResult != null) txtResult.text = GameState.LastRoundResult switch
         {
             RoundResult.PlayerWin => "Победа!",
             RoundResult.DealerWin => "Дилер выиграл",
@@ -27,8 +35,4 @@ public class RoundResultScreen : MonoBehaviour
             _                     => ""
         };
     }
-
-    void OnDisable() => btnContinue.onClick.RemoveAllListeners();
-
-    void OnContinue() => UIManager.Instance.ShowGame();
 }

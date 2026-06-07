@@ -3,17 +3,26 @@ using UnityEngine.UI;
 
 public class WelcomeScreen : MonoBehaviour
 {
-    [Header("Кнопки")]
+    public GameObject rootPanel;
     public Button btnPlay;
     public Button btnRules;
     public Button btnExit;
     public Button btnAdmin;
 
-    void Start()
+    public void Init()
     {
-        btnPlay .onClick.AddListener(() => UIManager.Instance.ShowGirlSelect());
-        btnRules.onClick.AddListener(() => UIManager.Instance.ShowRules());
-        btnExit .onClick.AddListener(() => UIManager.Instance.Quit());
-        btnAdmin.onClick.AddListener(() => UIManager.Instance.ShowAdmin());
+        Debug.Log("[WelcomeScreen] Init");
+        if (btnPlay  == null) { Debug.LogError("[WelcomeScreen] btnPlay не назначен!");  return; }
+        if (btnRules == null) { Debug.LogError("[WelcomeScreen] btnRules не назначен!"); return; }
+        if (btnExit  == null) { Debug.LogError("[WelcomeScreen] btnExit не назначен!");  return; }
+
+        btnPlay .onClick.AddListener(() => { Debug.Log("[WelcomeScreen] Играть"); UIManager.Instance.ShowGirlSelect(); });
+        btnRules.onClick.AddListener(() => { Debug.Log("[WelcomeScreen] Правила"); UIManager.Instance.ShowRules(); });
+        btnExit .onClick.AddListener(() => { Debug.Log("[WelcomeScreen] Выход"); UIManager.Instance.Quit(); });
+
+        if (btnAdmin != null) btnAdmin.gameObject.SetActive(false);
+        else Debug.LogWarning("[WelcomeScreen] btnAdmin не назначен — пропускаем скрытие");
     }
+
+    public void Show() => Debug.Log("[WelcomeScreen] Show");
 }
