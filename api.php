@@ -1,8 +1,8 @@
 <?php
 header('Content-Type: application/json');
 
-$baseDir = __DIR__ . '/Data/Girls/';
-$baseUrl = 'http://' . $_SERVER['HTTP_HOST'] . '/Data/Girls/';
+$baseDir = __DIR__ . '/data/Girls/';
+$baseUrl = 'http://' . $_SERVER['HTTP_HOST'] . '/data/Girls/';
 $imgExts = ['jpg', 'jpeg', 'png', 'webp'];
 
 $girls = [];

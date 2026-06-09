@@ -9,7 +9,7 @@ public class ContentService : MonoBehaviour
 {
     public static ContentService Instance { get; private set; }
 
-    const string API_URL = "http://designert4.temp.swtest.ru/api.php";
+    const string API_URL = "http://cards21.atwebpages.com/API/api.php";
 
     public List<RemoteGirlData> Girls    { get; private set; } = new();
     public bool                 IsLoaded { get; private set; }
