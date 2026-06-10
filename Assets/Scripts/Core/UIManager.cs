@@ -62,16 +62,35 @@ public class UIManager : MonoBehaviour
         if (panelGame      == null) Debug.LogError("[UIManager] panelGame не назначен!");
         if (gameController == null) Debug.LogError("[UIManager] gameController не назначен!");
 
-        welcome       ?.Init();
-        rules         ?.Init();
-        girlSelect    ?.Init();
-        intro         ?.Init();
-        difficulty    ?.Init();
-        roundResult   ?.Init();
-        gameEnd       ?.Init();
-        gameController?.Init();
+        SafeInit(() => welcome       ?.Init(), "WelcomeScreen");
+        SafeInit(() => rules         ?.Init(), "RulesScreen");
+        SafeInit(() => girlSelect    ?.Init(), "GirlSelectScreen");
+        SafeInit(() => intro         ?.Init(), "IntroScreen");
+        SafeInit(() => difficulty    ?.Init(), "DifficultyScreen");
+        SafeInit(() => roundResult   ?.Init(), "RoundResultScreen");
+        SafeInit(() => gameEnd       ?.Init(), "GameEndScreen");
+        SafeInit(() => gameController?.Init(), "GameController");
 
         ShowWelcome();
+    }
+
+    // ── Изолированная инициализация ───────────────────────────
+
+    /// <summary>
+    /// Запускает Init одного экрана в изоляции.
+    /// Падение любого Init не влияет на инициализацию остальных.
+    /// </summary>
+    static void SafeInit(System.Action init, string name)
+    {
+        try
+        {
+            init?.Invoke();
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[UIManager] SafeInit '{name}' УПАЛ: {e.Message}\n{e.StackTrace}");
+            // Продолжаем инициализацию остальных экранов
+        }
     }
 
     // ── Навигация ─────────────────────────────────────────────

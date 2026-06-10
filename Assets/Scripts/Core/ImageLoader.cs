@@ -1,12 +1,20 @@
 using System;
-using System.IO;
 using System.Collections;
+using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityEngine.Networking;
 
+/// <summary>
+/// Атомарный загрузчик локальных изображений.
+/// Полностью независим от ContentService и сетевого стека.
+/// Имеет кеш — повторный запрос одного файла возвращает кешированный спрайт.
+/// </summary>
 public class ImageLoader : MonoBehaviour
 {
     static ImageLoader _instance;
+
+    readonly Dictionary<string, Sprite> _cache = new();
 
     public static ImageLoader Instance
     {
@@ -22,7 +30,9 @@ public class ImageLoader : MonoBehaviour
     }
 
     /// <summary>
-    /// Загружает спрайт по пути (локальный) или URL (http/https) и отдаёт в onLoaded.
+    /// Загружает спрайт по локальному пути или URL.
+    /// Повторный вызов с тем же путём вернёт кешированный спрайт мгновенно.
+    /// Никогда не бросает исключений — при ошибке вызывает onLoaded(null).
     /// </summary>
     public static void Load(string path, Action<Sprite> onLoaded)
     {
@@ -35,11 +45,19 @@ public class ImageLoader : MonoBehaviour
             return;
         }
 
+        // Кеш
+        if (Instance._cache.TryGetValue(path, out var cached))
+        {
+            Debug.Log($"[ImageLoader] Из кеша: {path}");
+            onLoaded?.Invoke(cached);
+            return;
+        }
+
         bool isRemote = path.StartsWith("http://") || path.StartsWith("https://");
 
         if (!isRemote && !File.Exists(path))
         {
-            Debug.LogError($"[ImageLoader] Файл не найден на диске: {path}");
+            Debug.LogError($"[ImageLoader] Файл не найден: {path}");
             onLoaded?.Invoke(null);
             return;
         }
@@ -61,12 +79,14 @@ public class ImageLoader : MonoBehaviour
             var sprite = Sprite.Create(tex,
                 new Rect(0, 0, tex.width, tex.height),
                 new Vector2(0.5f, 0.5f));
-            Debug.Log($"[ImageLoader] Успешно загружено: {url} ({tex.width}x{tex.height})");
+
+            _cache[path] = sprite; // кешируем
+            Debug.Log($"[ImageLoader] Успешно: {url} ({tex.width}x{tex.height})");
             onLoaded?.Invoke(sprite);
         }
         else
         {
-            Debug.LogError($"[ImageLoader] Ошибка загрузки: {url} | {request.responseCode} | {request.error}");
+            Debug.LogError($"[ImageLoader] Ошибка: {url} | {request.responseCode} | {request.error}");
             onLoaded?.Invoke(null);
         }
     }

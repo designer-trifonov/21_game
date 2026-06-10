@@ -1,6 +1,8 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Video;
+using UnityEngine.Networking;
 using TMPro;
 
 public class IntroScreen : MonoBehaviour
@@ -13,6 +15,7 @@ public class IntroScreen : MonoBehaviour
     public RawImage         videoDisplay;
     public GameObject       videoContainer;
     public Button           btnStart;
+    public AudioSource      audioSource;   // назначь в инспекторе
 
     RenderTexture _rt;
 
@@ -34,12 +37,12 @@ public class IntroScreen : MonoBehaviour
             return;
         }
 
-        Debug.Log($"[IntroScreen] intro.type={girl.intro.type} url={girl.intro.url} image_url={girl.intro.image_url} text={girl.intro.text}");
+        Debug.Log($"[IntroScreen] type={girl.intro.type} image_url={girl.intro.image_url} text={girl.intro.text} audio_url={girl.intro.audio_url}");
 
         if (girl.intro.type == "video" && !string.IsNullOrEmpty(girl.intro.url))
             ShowVideo(girl.intro.url);
         else
-            ShowPhoto(girl.intro.image_url, girl.intro.text);
+            ShowPhoto(girl.intro.image_url, girl.intro.text, girl.intro.audio_url);
     }
 
     void ShowVideo(string url)
@@ -61,42 +64,64 @@ public class IntroScreen : MonoBehaviour
         Debug.Log("[IntroScreen] Видео запущено");
     }
 
-    void ShowPhoto(string imageUrl, string text)
+    void ShowPhoto(string imageUrl, string text, string audioUrl)
     {
-        Debug.Log($"[IntroScreen] ShowPhoto — imageUrl={imageUrl} text={text}");
+        Debug.Log($"[IntroScreen] ShowPhoto — imageUrl={imageUrl} text={text} audioUrl={audioUrl}");
         if (photoContainer == null) { Debug.LogError("[IntroScreen] photoContainer не назначен!"); return; }
 
         videoContainer?.SetActive(false);
         photoContainer.SetActive(true);
 
+        // Текст — показываем если есть
         if (txtDescription != null)
         {
             txtDescription.text = text ?? string.Empty;
-            Debug.Log($"[IntroScreen] Текст установлен: '{txtDescription.text}'");
-        }
-        else
-            Debug.LogError("[IntroScreen] txtDescription не назначен!");
-
-        if (string.IsNullOrEmpty(imageUrl))
-        {
-            Debug.LogError("[IntroScreen] imageUrl пустой — фото не будет!");
-            return;
+            txtDescription.gameObject.SetActive(!string.IsNullOrEmpty(text));
+            Debug.Log($"[IntroScreen] Текст: '{txtDescription.text}'");
         }
 
-        if (photoImage == null)
+        // Фото
+        if (!string.IsNullOrEmpty(imageUrl) && photoImage != null)
         {
-            Debug.LogError("[IntroScreen] photoImage не назначен!");
-            return;
+            ContentService.Instance.GetSprite(imageUrl, sprite =>
+            {
+                if (photoImage == null) return;
+                photoImage.sprite  = sprite;
+                photoImage.enabled = sprite != null;
+                Debug.Log($"[IntroScreen] Фото загружено: {sprite != null}");
+            });
         }
 
-        ContentService.Instance.GetSprite(imageUrl, sprite =>
+        // Аудио — автозапуск
+        if (!string.IsNullOrEmpty(audioUrl))
+            StartCoroutine(PlayAudio(audioUrl));
+    }
+
+    IEnumerator PlayAudio(string url)
+    {
+        Debug.Log($"[IntroScreen] Загружаю аудио: {url}");
+        using var req = UnityWebRequestMultimedia.GetAudioClip(url, AudioType.UNKNOWN);
+        ((DownloadHandlerAudioClip)req.downloadHandler).streamAudio = true;
+        yield return req.SendWebRequest();
+
+        if (req.result != UnityWebRequest.Result.Success)
         {
-            Debug.Log($"[IntroScreen] Спрайт получен: {sprite != null} — устанавливаем на photoImage");
-            if (photoImage == null) { Debug.LogError("[IntroScreen] photoImage уничтожен!"); return; }
-            photoImage.sprite  = sprite;
-            photoImage.enabled = sprite != null;
-            if (sprite == null) Debug.LogError("[IntroScreen] Спрайт NULL — фото не отобразится!");
-        });
+            Debug.LogError($"[IntroScreen] Ошибка загрузки аудио: {req.error}");
+            yield break;
+        }
+
+        var clip = DownloadHandlerAudioClip.GetContent(req);
+        if (audioSource == null) { Debug.LogError("[IntroScreen] audioSource не назначен!"); yield break; }
+
+        audioSource.clip = clip;
+        audioSource.Play();
+        Debug.Log("[IntroScreen] Аудио запущено");
+    }
+
+    void StopAudio()
+    {
+        if (audioSource != null && audioSource.isPlaying)
+            audioSource.Stop();
     }
 
     void StopVideo()
@@ -116,8 +141,9 @@ public class IntroScreen : MonoBehaviour
 
     void OnStart()
     {
-        Debug.Log("[IntroScreen] Кнопка Старт нажата → ShowDifficulty");
+        Debug.Log("[IntroScreen] Кнопка Старт нажата → ShowGame");
         StopVideo();
-        UIManager.Instance.ShowDifficulty();
+        StopAudio();
+        UIManager.Instance.ShowGame();
     }
 }

@@ -202,12 +202,8 @@ public class GameController : MonoBehaviour
         if (container == null) { Debug.LogError($"[GameController] container для {owner} не назначен!"); return; }
         if (cardSlotPrefab == null) { Debug.LogError("[GameController] cardSlotPrefab не назначен!"); return; }
 
-        for (int i = container.childCount - 1; i >= 0; i--)
-        {
-            var child = container.GetChild(i);
-            child.SetParent(null);
+        foreach (Transform child in container)
             Destroy(child.gameObject);
-        }
 
         Debug.Log($"[GameController] RebuildCards {owner} — карт: {cards.Count}");
 
@@ -215,7 +211,6 @@ public class GameController : MonoBehaviour
         {
             var go   = Instantiate(cardSlotPrefab, container);
             go.name  = card.DisplayName;
-            Debug.Log($"[GameController] Instantiate '{card.DisplayName}' → parent='{go.transform.parent?.name}' childCount={container.childCount}");
 
             var slot = go.GetComponent<CardSlotView>();
             if (slot == null) { Debug.LogError($"[GameController] CardSlotView не найден на префабе! Карта: {card.DisplayName}"); continue; }
@@ -223,19 +218,32 @@ public class GameController : MonoBehaviour
             if (slot.label  != null) slot.label.text = card.DisplayName;
             if (slot.button != null) slot.button.interactable = false;
 
-            var path = DataPaths.FindImage(card.spriteName);
-            Debug.Log($"[GameController] Карта {owner} '{card.DisplayName}' spriteName={card.spriteName} path={path ?? "НЕ НАЙДЕН"}");
+            if (slot.photo == null) { Debug.LogError($"[GameController] slot.photo == NULL на префабе! Карта: {card.DisplayName}"); continue; }
 
-            if (!string.IsNullOrEmpty(path) && slot.photo != null)
-                ImageLoader.Load(path, s =>
+            var path = DataPaths.FindImage(card.spriteName);
+            if (string.IsNullOrEmpty(path)) { Debug.LogError($"[GameController] Файл не найден: {card.spriteName}"); continue; }
+
+            Debug.Log($"[GameController] Загружаю карту '{card.DisplayName}' → {path}");
+            var capturedSlot = slot;
+            var capturedName = card.DisplayName;
+            ImageLoader.Load(path, s =>
+            {
+                try
                 {
-                    Debug.Log($"[GameController] Карта '{card.DisplayName}' спрайт загружен: {s != null}");
-                    if (slot.photo == null) return;
-                    slot.photo.sprite         = s;
-                    slot.photo.preserveAspect = true;
-                });
-            else if (string.IsNullOrEmpty(path))
-                Debug.LogError($"[GameController] Файл карты не найден: spriteName={card.spriteName}");
+                    if (capturedSlot == null || capturedSlot.photo == null)
+                    {
+                        Debug.LogWarning($"[GameController] Слот уничтожен до загрузки '{capturedName}' — игнорируем");
+                        return;
+                    }
+                    capturedSlot.photo.sprite         = s;
+                    capturedSlot.photo.preserveAspect = true;
+                    Debug.Log($"[GameController] Карта '{capturedName}' загружена: {s != null}");
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogWarning($"[GameController] Исключение при установке спрайта '{capturedName}': {e.Message}");
+                }
+            });
         }
     }
 
@@ -243,7 +251,7 @@ public class GameController : MonoBehaviour
     {
         var suits  = new[] { "clubs", "diamonds", "hearts", "spades" };
         var ranks  = new[] { "A", "6", "7", "8", "9", "10", "J", "Q", "K" };
-        var values = new[] { 11,   6,   7,   8,   9,   10,  10,  10,  10  };
+        var values = new[] { 11,   6,   7,   8,   9,   10,   2,   3,   4  };
         var deck   = new List<CardEntry>();
         int index  = 1;
 

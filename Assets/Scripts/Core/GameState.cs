@@ -7,7 +7,7 @@ public static class GameState
     public static GirlData         CurrentGirl       { get; private set; }
     public static RemoteGirlData   CurrentRemoteGirl { get; private set; }
     public static int              Round             { get; set; } = 1;
-    public static int              MaxRounds         { get; set; } = 14;
+    public static int              MaxRounds         { get; set; } = 16;
     public static int              PlayerWins        { get; set; } = 0;
     public static int              ClothingLevel     { get; set; } = 0;
     public static Difficulty       CurrentDifficulty { get; private set; } = Difficulty.Normal;
