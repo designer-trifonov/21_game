@@ -18,6 +18,7 @@ public class RoundSession
     {
         _deck           = Shuffle(deck);
         _dealerStrategy = dealerStrategy;
+        Debug.Log($"[RoundSession] Создан — карт в колоде: {_deck.Count} стратегия: {dealerStrategy?.GetType().Name}");
     }
 
     // ── Раздача ───────────────────────────────────────────────
@@ -31,7 +32,9 @@ public class RoundSession
         PlayerHand.Add(Draw());
         DealerHand.Add(Draw());
         PlayerHand.Add(Draw());
-        DealerHand.Add(Draw()); // вторая карта дилера закрыта до его хода
+        DealerHand.Add(Draw());
+
+        Debug.Log($"[RoundSession] Deal — игрок: {CardsLog(PlayerHand)} ({PlayerHand.Score}) | дилер: {CardsLog(DealerHand)} ({DealerHand.Score})");
     }
 
     // ── Ход игрока ────────────────────────────────────────────
@@ -39,20 +42,24 @@ public class RoundSession
     /// <summary>Игрок берёт карту. Возвращает false если перебор.</summary>
     public bool PlayerHit()
     {
-        PlayerHand.Add(Draw());
-        return !PlayerHand.IsBust;
+        var card = Draw();
+        PlayerHand.Add(card);
+        bool alive = !PlayerHand.IsBust;
+        Debug.Log($"[RoundSession] PlayerHit — карта: {card.DisplayName} итого: {PlayerHand.Score} bust={PlayerHand.IsBust}");
+        return alive;
     }
 
     // ── Ход дилера ────────────────────────────────────────────
 
-    /// <summary>
-    /// Дилер доигрывает по стратегии.
-    /// Вызывать после того как игрок остановился.
-    /// </summary>
     public void RunDealer()
     {
+        int hits = 0;
         while (_dealerStrategy.ShouldHit(DealerHand.Score))
+        {
             DealerHand.Add(Draw());
+            hits++;
+        }
+        Debug.Log($"[RoundSession] RunDealer — взял карт: {hits} | итого: {CardsLog(DealerHand)} ({DealerHand.Score}) bust={DealerHand.IsBust}");
     }
 
     // ── Результат ─────────────────────────────────────────────
@@ -61,16 +68,19 @@ public class RoundSession
     {
         bool playerBust = PlayerHand.IsBust;
         bool dealerBust = DealerHand.IsBust;
+        int  ps         = PlayerHand.Score;
+        int  ds         = DealerHand.Score;
 
-        if (playerBust) return RoundResult.DealerWin;
-        if (dealerBust) return RoundResult.PlayerWin;
+        RoundResult result;
 
-        int ps = PlayerHand.Score;
-        int ds = DealerHand.Score;
+        if      (playerBust)  result = RoundResult.DealerWin;
+        else if (dealerBust)  result = RoundResult.PlayerWin;
+        else if (ps > ds)     result = RoundResult.PlayerWin;
+        else if (ds > ps)     result = RoundResult.DealerWin;
+        else                  result = RoundResult.Draw;
 
-        if (ps > ds) return RoundResult.PlayerWin;
-        if (ds > ps) return RoundResult.DealerWin;
-        return RoundResult.Draw;
+        Debug.Log($"[RoundSession] ResolveResult — игрок={ps}(bust={playerBust}) дилер={ds}(bust={dealerBust}) → {result}");
+        return result;
     }
 
     // ── Вспомогательное ──────────────────────────────────────
@@ -100,4 +110,7 @@ public class RoundSession
         }
         return deck;
     }
+
+    static string CardsLog(Hand hand) =>
+        string.Join(", ", hand.Cards.ConvertAll(c => c.DisplayName));
 }

@@ -1,3 +1,5 @@
+using UnityEngine;
+
 /// <summary>
 /// Глобальное состояние игры. Хранит текущую сессию.
 /// Сбрасывается при выборе новой девушки.
@@ -13,7 +15,11 @@ public static class GameState
     public static Difficulty       CurrentDifficulty { get; private set; } = Difficulty.Normal;
     public static RoundResult      LastRoundResult   { get; private set; } = RoundResult.Draw;
 
-    public static void SetDifficulty(Difficulty d) => CurrentDifficulty = d;
+    public static void SetDifficulty(Difficulty d)
+    {
+        Debug.Log($"[GameState] SetDifficulty: {d}");
+        CurrentDifficulty = d;
+    }
 
     public static void StartGame(GirlData girl)
     {
@@ -22,6 +28,7 @@ public static class GameState
         Round         = 1;
         PlayerWins    = 0;
         ClothingLevel = 0;
+        Debug.Log($"[GameState] StartGame — girl={girl?.name} MaxRounds={MaxRounds} Difficulty={CurrentDifficulty}");
     }
 
     public static void StartRemoteGame(RemoteGirlData girl)
@@ -31,6 +38,7 @@ public static class GameState
         Round         = 1;
         PlayerWins    = 0;
         ClothingLevel = 0;
+        Debug.Log($"[GameState] StartRemoteGame — id={girl?.id} photos={girl?.photos?.Count} MaxRounds={MaxRounds} Difficulty={CurrentDifficulty}");
     }
 
     public static void OnPlayerWin()
@@ -39,12 +47,14 @@ public static class GameState
         PlayerWins++;
         ClothingLevel = PlayerWins;
         Round++;
+        Debug.Log($"[GameState] OnPlayerWin → PlayerWins={PlayerWins} ClothingLevel={ClothingLevel} Round={Round}");
     }
 
     public static void OnRoundEnd(RoundResult result)
     {
         LastRoundResult = result;
         Round++;
+        Debug.Log($"[GameState] OnRoundEnd → result={result} Round={Round} PlayerWins={PlayerWins}");
     }
 
     public static bool IsGameOver => Round > MaxRounds;
@@ -55,9 +65,17 @@ public static class GameState
             if (CurrentRemoteGirl != null)
             {
                 int count = CurrentRemoteGirl.photos?.Count ?? 0;
-                return count > 0 && ClothingLevel >= count;
+                bool won  = count > 0 && ClothingLevel >= count;
+                if (won) Debug.Log($"[GameState] IsPlayerWon=true (ClothingLevel={ClothingLevel} >= photos={count})");
+                return won;
             }
-            return CurrentGirl != null && ClothingLevel >= CurrentGirl.clothingCount;
+            if (CurrentGirl != null)
+            {
+                bool won = ClothingLevel >= CurrentGirl.clothingCount;
+                if (won) Debug.Log($"[GameState] IsPlayerWon=true (local girl)");
+                return won;
+            }
+            return false;
         }
     }
 }

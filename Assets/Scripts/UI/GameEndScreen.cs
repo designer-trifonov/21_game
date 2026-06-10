@@ -41,11 +41,13 @@ public class GameEndScreen : MonoBehaviour
         {
             if (txtTitle   != null) txtTitle  .text = "Поздравляем!";
             if (txtSummary != null) txtSummary.text = $"Ты победил!\nПобед: {GameState.PlayerWins}";
+            Debug.Log($"[GameEndScreen] Победа — текст установлен");
         }
         else
         {
             if (txtTitle   != null) txtTitle  .text = "Игра окончена";
             if (txtSummary != null) txtSummary.text = $"Раунды закончились.\nПобед: {GameState.PlayerWins} из {GameState.MaxRounds}";
+            Debug.Log($"[GameEndScreen] Проигрыш — текст установлен");
         }
 
         var girl  = GameState.CurrentRemoteGirl;
@@ -91,8 +93,26 @@ public class GameEndScreen : MonoBehaviour
         }
     }
 
+    void OnPlayAgain()
+    {
+        Debug.Log("[GameEndScreen] Играть снова");
+        StopMedia();
+        if (GameState.CurrentRemoteGirl != null)
+        {
+            Debug.Log($"[GameEndScreen] Рестарт remote-игры id={GameState.CurrentRemoteGirl.id}");
+            GameState.StartRemoteGame(GameState.CurrentRemoteGirl);
+        }
+        else
+        {
+            Debug.Log($"[GameEndScreen] Рестарт локальной игры girl={GameState.CurrentGirl?.name}");
+            GameState.StartGame(GameState.CurrentGirl);
+        }
+        UIManager.Instance.ShowGame();
+    }
+
     void StopMedia()
     {
+        Debug.Log($"[GameEndScreen] StopMedia — videoPlaying={mediaVideoPlayer?.isPlaying}");
         if (mediaVideoPlayer != null)
         {
             mediaVideoPlayer.Stop();
@@ -104,16 +124,5 @@ public class GameEndScreen : MonoBehaviour
             Object.Destroy(_rt);
             _rt = null;
         }
-    }
-
-    void OnPlayAgain()
-    {
-        Debug.Log("[GameEndScreen] Играть снова");
-        StopMedia();
-        if (GameState.CurrentRemoteGirl != null)
-            GameState.StartRemoteGame(GameState.CurrentRemoteGirl);
-        else
-            GameState.StartGame(GameState.CurrentGirl);
-        UIManager.Instance.ShowDifficulty();
     }
 }
