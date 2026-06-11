@@ -105,18 +105,10 @@ public class GameEndScreen : MonoBehaviour
 
     void OnPlayAgain()
     {
-        Debug.Log("[GameEndScreen] Играть снова");
+        Debug.Log($"[GameEndScreen] Играть снова — id={GameState.CurrentRemoteGirl?.id}");
         StopMedia();
         if (GameState.CurrentRemoteGirl != null)
-        {
-            Debug.Log($"[GameEndScreen] Рестарт remote-игры id={GameState.CurrentRemoteGirl.id}");
             GameState.StartRemoteGame(GameState.CurrentRemoteGirl);
-        }
-        else
-        {
-            Debug.Log($"[GameEndScreen] Рестарт локальной игры girl={GameState.CurrentGirl?.name}");
-            GameState.StartGame(GameState.CurrentGirl);
-        }
         UIManager.Instance.ShowGame();
     }
 

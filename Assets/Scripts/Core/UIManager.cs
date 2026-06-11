@@ -12,13 +12,11 @@ public class UIManager : MonoBehaviour
     public RulesScreen       rules;
     public GirlSelectScreen  girlSelect;
     public IntroScreen       intro;
-    public DifficultyScreen  difficulty;
     public RoundResultScreen roundResult;
     public GameEndScreen     gameEnd;
 
     [Header("Панели — только объекты (без скрипта)")]
     public GameObject panelGame;
-    public GameObject panelAdmin;
 
     [Header("Контроллер игры")]
     public GameController gameController;
@@ -49,26 +47,23 @@ public class UIManager : MonoBehaviour
 
         if (btnMainMenu != null) btnMainMenu.gameObject.SetActive(false);
 
-        // Гасим все панели явно — ни одна не должна быть активна при старте
         DeactivateAll();
 
         if (welcome     == null) Debug.LogError("[UIManager] welcome не назначен!");
         if (rules       == null) Debug.LogError("[UIManager] rules не назначен!");
         if (girlSelect  == null) Debug.LogError("[UIManager] girlSelect не назначен!");
         if (intro       == null) Debug.LogError("[UIManager] intro не назначен!");
-        if (difficulty  == null) Debug.LogError("[UIManager] difficulty не назначен!");
         if (roundResult == null) Debug.LogError("[UIManager] roundResult не назначен!");
-        if (gameEnd        == null) Debug.LogError("[UIManager] gameEnd не назначен!");
-        if (panelGame      == null) Debug.LogError("[UIManager] panelGame не назначен!");
+        if (gameEnd     == null) Debug.LogError("[UIManager] gameEnd не назначен!");
+        if (panelGame   == null) Debug.LogError("[UIManager] panelGame не назначен!");
         if (gameController == null) Debug.LogError("[UIManager] gameController не назначен!");
 
-        SafeInit(() => welcome       ?.Init(), "WelcomeScreen");
-        SafeInit(() => rules         ?.Init(), "RulesScreen");
-        SafeInit(() => girlSelect    ?.Init(), "GirlSelectScreen");
-        SafeInit(() => intro         ?.Init(), "IntroScreen");
-        SafeInit(() => difficulty    ?.Init(), "DifficultyScreen");
-        SafeInit(() => roundResult   ?.Init(), "RoundResultScreen");
-        SafeInit(() => gameEnd       ?.Init(), "GameEndScreen");
+        SafeInit(() => welcome      ?.Init(), "WelcomeScreen");
+        SafeInit(() => rules        ?.Init(), "RulesScreen");
+        SafeInit(() => girlSelect   ?.Init(), "GirlSelectScreen");
+        SafeInit(() => intro        ?.Init(), "IntroScreen");
+        SafeInit(() => roundResult  ?.Init(), "RoundResultScreen");
+        SafeInit(() => gameEnd      ?.Init(), "GameEndScreen");
         SafeInit(() => gameController?.Init(), "GameController");
 
         ShowWelcome();
@@ -76,38 +71,33 @@ public class UIManager : MonoBehaviour
 
     // ── Изолированная инициализация ───────────────────────────
 
-    /// <summary>
-    /// Запускает Init одного экрана в изоляции.
-    /// Падение любого Init не влияет на инициализацию остальных.
-    /// </summary>
-    static void SafeInit(System.Action init, string name)
+    static void SafeInit(Action init, string name)
     {
         try
         {
             init?.Invoke();
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
             Debug.LogError($"[UIManager] SafeInit '{name}' УПАЛ: {e.Message}\n{e.StackTrace}");
-            // Продолжаем инициализацию остальных экранов
         }
     }
 
     // ── Навигация ─────────────────────────────────────────────
 
-    public void ShowWelcome()     => Navigate(() => { Show(welcome?.rootPanel);     welcome    ?.Show(); }, clearHistory: true);
-    public void ShowRules()       => Navigate(() => { Show(rules?.rootPanel);        rules      ?.Show(); });
-    public void ShowGirlSelect()  => Navigate(() => { Show(girlSelect?.rootPanel);   girlSelect ?.Show(); });
-    public void ShowIntro()       => Navigate(() => { Show(intro?.rootPanel);        intro      ?.Show(); });
-    public void ShowDifficulty()  => Navigate(() => { Show(difficulty?.rootPanel);   difficulty ?.Show(); });
+    public void ShowWelcome()     => Navigate(() => { Show(welcome    ?.rootPanel); welcome    ?.Show(); }, clearHistory: true);
+    public void ShowRules()       => Navigate(() => { Show(rules      ?.rootPanel); rules      ?.Show(); });
+    public void ShowGirlSelect()  => Navigate(() => { Show(girlSelect ?.rootPanel); girlSelect ?.Show(); });
+    public void ShowIntro()       => Navigate(() => { Show(intro      ?.rootPanel); intro      ?.Show(); });
+    public void ShowRoundResult() => Navigate(() => { Show(roundResult?.rootPanel); roundResult?.Show(); });
+    public void ShowGameEnd()     => Navigate(() => { Show(gameEnd    ?.rootPanel); gameEnd    ?.Show(); });
+
     public void ShowGame()
     {
         Navigate(() => { Show(panelGame); gameController?.StartGame(); });
         if (btnBack     != null) btnBack    .gameObject.SetActive(false);
         if (btnMainMenu != null) btnMainMenu.gameObject.SetActive(true);
     }
-    public void ShowRoundResult() => Navigate(() => { Show(roundResult?.rootPanel);  roundResult?.Show(); });
-    public void ShowGameEnd()     => Navigate(() => { Show(gameEnd?.rootPanel);      gameEnd    ?.Show(); });
 
     // ── Назад ────────────────────────────────────────────────
 
@@ -120,7 +110,7 @@ public class UIManager : MonoBehaviour
         if (_current == null) { Debug.LogError("[UIManager] GoBack: поп вернул null!"); return; }
         _current.SetActive(true);
         if (btnBack != null) btnBack.gameObject.SetActive(_history.Count > 0);
-        Debug.Log($"[UIManager] GoBack → {_current.name} | осталось в истории: {_history.Count}");
+        Debug.Log($"[UIManager] GoBack → {_current.name} | осталось: {_history.Count}");
     }
 
     // ─────────────────────────────────────────────────────────
@@ -164,11 +154,9 @@ public class UIManager : MonoBehaviour
         Off(rules      ?.rootPanel);
         Off(girlSelect ?.rootPanel);
         Off(intro      ?.rootPanel);
-        Off(difficulty ?.rootPanel);
         Off(roundResult?.rootPanel);
         Off(gameEnd    ?.rootPanel);
         Off(panelGame);
-        Off(panelAdmin);
 
         Debug.Log("[UIManager] DeactivateAll — все панели скрыты");
     }

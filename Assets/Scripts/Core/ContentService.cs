@@ -5,11 +5,17 @@ using System.IO;
 using UnityEngine;
 using UnityEngine.Networking;
 
+// Игнорируем проверку SSL — нужно для бесплатных хостингов с общим сертификатом
+public class AcceptAllCertificates : CertificateHandler
+{
+    protected override bool ValidateCertificate(byte[] certificateData) => true;
+}
+
 public class ContentService : MonoBehaviour
 {
     public static ContentService Instance { get; private set; }
 
-    const string API_URL = "http://cards21.atwebpages.com/API/api.php";
+    const string API_URL = "http://cards21.atwebpages.com/api.php";
 
     public List<RemoteGirlData> Girls    { get; private set; } = new();
     public bool                 IsLoaded { get; private set; }
@@ -28,16 +34,31 @@ public class ContentService : MonoBehaviour
 
     IEnumerator LoadAll()
     {
-        Debug.Log($"[ContentService] Запрос манифеста: {API_URL}");
+        const int MAX_RETRIES = 5;
+        UnityWebRequest req = null;
 
-        using var req = UnityWebRequest.Get(API_URL);
-        yield return req.SendWebRequest();
-
-        if (req.result != UnityWebRequest.Result.Success)
+        for (int attempt = 1; attempt <= MAX_RETRIES; attempt++)
         {
-            Error    = req.error;
+            Debug.Log($"[ContentService] Запрос манифеста (попытка {attempt}/{MAX_RETRIES}): {API_URL}");
+            req = UnityWebRequest.Get(API_URL);
+            req.certificateHandler = new AcceptAllCertificates();
+            req.SetRequestHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
+            yield return req.SendWebRequest();
+
+            if (req.result == UnityWebRequest.Result.Success) break;
+
+            Debug.LogWarning($"[ContentService] Попытка {attempt} неудачна: {req.error}. Повтор через 2 сек...");
+            req.Dispose();
+            req = null;
+            yield return new WaitForSeconds(2f);
+        }
+
+        if (req == null || req.result != UnityWebRequest.Result.Success)
+        {
+            Error    = req?.error ?? "Нет ответа";
             IsLoaded = true;
-            Debug.LogError($"[ContentService] ОШИБКА манифеста: {req.error}");
+            Debug.LogError($"[ContentService] ОШИБКА манифеста после {MAX_RETRIES} попыток: {Error}");
+            req?.Dispose();
             yield break;
         }
 
@@ -105,6 +126,7 @@ public class ContentService : MonoBehaviour
     IEnumerator DownloadAndSave(string url, string localPath)
     {
         using var req = UnityWebRequestTexture.GetTexture(url);
+        req.certificateHandler = new AcceptAllCertificates();
         yield return req.SendWebRequest();
 
         if (req.result == UnityWebRequest.Result.Success)
