@@ -15,8 +15,6 @@ public class GameEndScreen : MonoBehaviour
     public Image       mediaImage;
     public RawImage    mediaVideoDisplay;
     public VideoPlayer mediaVideoPlayer;
-    public GameObject  mediaImageContainer;
-    public GameObject  mediaVideoContainer;
 
     RenderTexture _rt;
 
@@ -41,13 +39,13 @@ public class GameEndScreen : MonoBehaviour
         {
             if (txtTitle   != null) txtTitle  .text = "Поздравляем!";
             if (txtSummary != null) txtSummary.text = $"Ты победил!\nПобед: {GameState.PlayerWins}";
-            Debug.Log($"[GameEndScreen] Победа — текст установлен");
+            Debug.Log("[GameEndScreen] Победа — текст установлен");
         }
         else
         {
             if (txtTitle   != null) txtTitle  .text = "Игра окончена";
             if (txtSummary != null) txtSummary.text = $"Раунды закончились.\nПобед: {GameState.PlayerWins} из {GameState.MaxRounds}";
-            Debug.Log($"[GameEndScreen] Проигрыш — текст установлен");
+            Debug.Log("[GameEndScreen] Проигрыш — текст установлен");
         }
 
         var girl  = GameState.CurrentRemoteGirl;
@@ -58,8 +56,10 @@ public class GameEndScreen : MonoBehaviour
     void ShowMedia(RemoteMedia media)
     {
         StopMedia();
-        mediaImageContainer?.SetActive(false);
-        mediaVideoContainer?.SetActive(false);
+
+        // Прячем всё до выбора типа
+        if (mediaImage        != null) mediaImage.enabled        = false;
+        if (mediaVideoDisplay != null) mediaVideoDisplay.enabled = false;
 
         if (media == null || media.type == "none" || string.IsNullOrEmpty(media.url))
         {
@@ -69,8 +69,12 @@ public class GameEndScreen : MonoBehaviour
 
         if (media.type == "video")
         {
-            if (mediaVideoPlayer == null || mediaVideoDisplay == null) { Debug.LogWarning("[GameEndScreen] videoPlayer/videoDisplay не назначены"); return; }
-            mediaVideoContainer?.SetActive(true);
+            if (mediaVideoPlayer == null || mediaVideoDisplay == null)
+            {
+                Debug.LogWarning("[GameEndScreen] videoPlayer/videoDisplay не назначены");
+                return;
+            }
+            mediaVideoDisplay.enabled = true;
             _rt = new RenderTexture(1080, 1920, 0);
             mediaVideoDisplay.texture      = _rt;
             mediaVideoPlayer.targetTexture = _rt;
@@ -82,13 +86,19 @@ public class GameEndScreen : MonoBehaviour
         else if (media.type == "image")
         {
             if (mediaImage == null) { Debug.LogWarning("[GameEndScreen] mediaImage не назначен"); return; }
-            mediaImageContainer?.SetActive(true);
             ContentService.Instance.GetSprite(media.url, sprite =>
             {
-                if (mediaImage == null) return;
-                mediaImage.sprite  = sprite;
-                mediaImage.enabled = sprite != null;
-                Debug.Log($"[GameEndScreen] Картинка загружена: {sprite != null}");
+                try
+                {
+                    if (mediaImage == null) return;
+                    mediaImage.sprite  = sprite;
+                    mediaImage.enabled = sprite != null;
+                    Debug.Log($"[GameEndScreen] Картинка загружена: {sprite != null}");
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogWarning($"[GameEndScreen] Ошибка установки спрайта: {e.Message}");
+                }
             });
         }
     }
