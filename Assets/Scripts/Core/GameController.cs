@@ -31,6 +31,9 @@ public class GameController : MonoBehaviour
     [Header("Префаб карты")]
     public GameObject cardSlotPrefab;
 
+    [Header("Спрайты карт (0 = рубашка, 1–36 = карты по порядку)")]
+    public List<Sprite> cardSprites;
+
     RoundSession _session;
     bool         _playerTurnActive;
     bool         _initialized;
@@ -46,6 +49,7 @@ public class GameController : MonoBehaviour
         Debug.Log($"  dealerCardsContainer={dealerCardsContainer != null}");
         Debug.Log($"  dealerHiddenCard={dealerHiddenCard != null}");
         Debug.Log($"  btnHit={btnHit != null} btnStand={btnStand != null}");
+        Debug.Log($"  cardSprites={cardSprites?.Count} (нужно 37: 0=рубашка, 1–36=карты)");
 
         if (btnHit   == null) { Debug.LogError("[GameController] btnHit не назначен!"); return; }
         if (btnStand == null) { Debug.LogError("[GameController] btnStand не назначен!"); return; }
@@ -53,20 +57,19 @@ public class GameController : MonoBehaviour
         btnHit  .onClick.AddListener(OnHit);
         btnStand.onClick.AddListener(OnStand);
 
-        // Грузим рубашку (0.png) на скрытую карту дилера
-        var backPath = DataPaths.FindImage("0");
-        if (backPath != null && dealerHiddenCard != null)
+        // Рубашка — индекс 0 в списке
+        if (cardSprites != null && cardSprites.Count > 0 && cardSprites[0] != null)
         {
-            var img = dealerHiddenCard.GetComponent<UnityEngine.UI.Image>();
+            var img = dealerHiddenCard?.GetComponent<Image>();
             if (img != null)
-                ImageLoader.Load(backPath, s =>
-                {
-                    Debug.Log($"[GameController] Рубашка загружена: {s != null}");
-                    if (img) { img.sprite = s; img.preserveAspect = true; }
-                });
+            {
+                img.sprite         = cardSprites[0];
+                img.preserveAspect = true;
+                Debug.Log("[GameController] Рубашка назначена из списка");
+            }
             else Debug.LogWarning("[GameController] dealerHiddenCard — нет компонента Image!");
         }
-        else Debug.LogWarning($"[GameController] 0.png не найден или dealerHiddenCard null. backPath={backPath}");
+        else Debug.LogWarning("[GameController] cardSprites[0] (рубашка) не назначен!");
 
         _initialized = true;
         Debug.Log("[GameController] Init завершён");
@@ -119,7 +122,6 @@ public class GameController : MonoBehaviour
 
         var result = _session.ResolveResult();
 
-        // ── Детальный лог результата ──────────────────────────
         var playerCards = string.Join(", ", _session.PlayerHand.Cards.ConvertAll(c => c.DisplayName));
         var dealerCards = string.Join(", ", _session.DealerHand.Cards.ConvertAll(c => c.DisplayName));
         Debug.Log($"[РЕЗУЛЬТАТ РАУНДА {GameState.Round}] ─────────────────────────");
@@ -167,7 +169,7 @@ public class GameController : MonoBehaviour
                 ContentService.Instance.GetSprite(photoUrl, s =>
                 {
                     Debug.Log($"[GameController] Фото девушки получено: sprite={s != null}");
-                    if (girlImage) girlImage.sprite = s;
+                    if (girlImage) { girlImage.sprite = s; girlImage.enabled = s != null; }
                     if (s == null) Debug.LogError($"[GameController] Спрайт NULL для {photoUrl}!");
                 });
             }
@@ -185,13 +187,13 @@ public class GameController : MonoBehaviour
 
         if (revealDealer)
         {
-            if (txtDealerScore  != null) txtDealerScore.text = _session.DealerHand.Score.ToString();
+            if (txtDealerScore   != null) txtDealerScore.text = _session.DealerHand.Score.ToString();
             if (dealerHiddenCard != null) dealerHiddenCard.SetActive(false);
             else Debug.LogWarning("[GameController] dealerHiddenCard не назначен!");
         }
         else
         {
-            if (txtDealerScore  != null) txtDealerScore.text = "?";
+            if (txtDealerScore   != null) txtDealerScore.text = "?";
             if (dealerHiddenCard != null) dealerHiddenCard.SetActive(true);
             else Debug.LogWarning("[GameController] dealerHiddenCard не назначен!");
         }
@@ -199,7 +201,7 @@ public class GameController : MonoBehaviour
 
     void RebuildCards(Transform container, List<CardEntry> cards, string owner)
     {
-        if (container == null) { Debug.LogError($"[GameController] container для {owner} не назначен!"); return; }
+        if (container == null)      { Debug.LogError($"[GameController] container для {owner} не назначен!"); return; }
         if (cardSlotPrefab == null) { Debug.LogError("[GameController] cardSlotPrefab не назначен!"); return; }
 
         foreach (Transform child in container)
@@ -209,41 +211,32 @@ public class GameController : MonoBehaviour
 
         foreach (var card in cards)
         {
-            var go   = Instantiate(cardSlotPrefab, container);
-            go.name  = card.DisplayName;
+            var go  = Instantiate(cardSlotPrefab, container);
+            go.name = card.DisplayName;
 
             var slot = go.GetComponent<CardSlotView>();
-            if (slot == null) { Debug.LogError($"[GameController] CardSlotView не найден на префабе! Карта: {card.DisplayName}"); continue; }
+            if (slot == null) { Debug.LogError($"[GameController] CardSlotView не найден! Карта: {card.DisplayName}"); continue; }
 
-            if (slot.label  != null) slot.label.text = card.DisplayName;
+            if (slot.label  != null) slot.label.text      = card.DisplayName;
             if (slot.button != null) slot.button.interactable = false;
 
-            if (slot.photo == null) { Debug.LogError($"[GameController] slot.photo == NULL на префабе! Карта: {card.DisplayName}"); continue; }
+            if (slot.photo == null) { Debug.LogError($"[GameController] slot.photo NULL! Карта: {card.DisplayName}"); continue; }
 
-            var path = DataPaths.FindImage(card.spriteName);
-            if (string.IsNullOrEmpty(path)) { Debug.LogError($"[GameController] Файл не найден: {card.spriteName}"); continue; }
-
-            Debug.Log($"[GameController] Загружаю карту '{card.DisplayName}' → {path}");
-            var capturedSlot = slot;
-            var capturedName = card.DisplayName;
-            ImageLoader.Load(path, s =>
+            // Берём спрайт из списка по индексу (spriteName = "1".."36")
+            if (int.TryParse(card.spriteName, out int idx)
+                && cardSprites != null
+                && idx >= 0 && idx < cardSprites.Count
+                && cardSprites[idx] != null)
             {
-                try
-                {
-                    if (capturedSlot == null || capturedSlot.photo == null)
-                    {
-                        Debug.LogWarning($"[GameController] Слот уничтожен до загрузки '{capturedName}' — игнорируем");
-                        return;
-                    }
-                    capturedSlot.photo.sprite         = s;
-                    capturedSlot.photo.preserveAspect = true;
-                    Debug.Log($"[GameController] Карта '{capturedName}' загружена: {s != null}");
-                }
-                catch (System.Exception e)
-                {
-                    Debug.LogWarning($"[GameController] Исключение при установке спрайта '{capturedName}': {e.Message}");
-                }
-            });
+                slot.photo.sprite         = cardSprites[idx];
+                slot.photo.preserveAspect = true;
+                slot.photo.enabled        = true;
+                Debug.Log($"[GameController] Карта '{card.DisplayName}' → cardSprites[{idx}]");
+            }
+            else
+            {
+                Debug.LogError($"[GameController] Нет спрайта для '{card.DisplayName}' (idx={card.spriteName}, всего={cardSprites?.Count})");
+            }
         }
     }
 
